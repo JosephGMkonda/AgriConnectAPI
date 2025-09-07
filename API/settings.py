@@ -43,7 +43,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'users',
-    'posts'
+    'posts',
+    'Comments',
+    'Userprofile',
+    'Like',
+    'Share',
+    'Saved',
+    'Follow'
 ]
 
 MIDDLEWARE = [

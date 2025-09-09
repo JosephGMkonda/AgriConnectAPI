@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from .models import UserProfile
 from .serializers import UserProfileCreateSerializer, UserProfileSerializer, UserProfileUpdateSerializer
-from users.authentication import supabaseJwtAuthentication
+from users.authentication import SupabaseJWTAuthentication
 
 
 
@@ -15,7 +15,7 @@ User = get_user_model()
 
 
 @api_view(['GET'])
-@authentication_classes([supabaseJwtAuthentication])
+@authentication_classes([SupabaseJWTAuthentication])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request, user_id=None):
 
@@ -32,8 +32,8 @@ def get_user_profile(request, user_id=None):
 
 
 @api_view(['PUT', 'PATCH'])
-@authentication_classes([supabaseJwtAuthentication])
-@permission_classes([IsAuthenticated])
+@authentication_classes([SupabaseJWTAuthentication])
+
 def update_user_profile(request):
     try:
         profile = get_object_or_404(UserProfile, user=request.user)
@@ -54,8 +54,8 @@ def update_user_profile(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view
-@authentication_classes([supabaseJwtAuthentication])
-@permission_classes([IsAuthenticated])
+@authentication_classes([SupabaseJWTAuthentication])
+
 def search_profile(request):
     try:
 

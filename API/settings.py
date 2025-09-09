@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,7 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 # Application definition
 
 INSTALLED_APPS = [
@@ -68,6 +69,8 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
@@ -77,12 +80,13 @@ ROOT_URLCONF = 'API.urls'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'users.authentication.supabaseJwtAuthentication', 
+        'users.authentication.SupabaseJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated', 
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
 
 TEMPLATES = [
     {
@@ -107,6 +111,9 @@ WSGI_APPLICATION = 'API.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres.ifqvnzunszqcrcllmejq:mko%40nda_21%3F@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres')
+
+
+
 
 DATABASES = {
     'default': dj_database_url.config(

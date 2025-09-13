@@ -111,6 +111,12 @@ WSGI_APPLICATION = 'API.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres.ifqvnzunszqcrcllmejq:mko%40nda_21%3F@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres')
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://default:7WmdX1IfTNb1AWPwU9JH3p1m6SORp5IN@redis-16107.c246.us-east-1-4.ec2.redns.redis-cloud.com:16107/0",
+    }
+}
 
 
 

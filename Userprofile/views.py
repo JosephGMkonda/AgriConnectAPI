@@ -33,7 +33,7 @@ def get_user_profile(request, user_id=None):
 
 @api_view(['PUT', 'PATCH'])
 @authentication_classes([SupabaseJWTAuthentication])
-
+@permission_classes([IsAuthenticated])
 def update_user_profile(request):
     try:
         profile = get_object_or_404(UserProfile, user=request.user)

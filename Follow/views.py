@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions, mixins, status
-from rest_framework.response import response
+from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from .models import Follow
 from .serializers import followSerializer
@@ -9,7 +9,7 @@ User = get_user_model()
 
 
 class FollowViewSet(viewsets.ModelViewSet):
-    queryset = Follow.objects.all().selected_related("follower","following")
+    queryset = Follow.objects.all().select_related("follower","following")
     serializer_class = followSerializer
     permission_class = [permissions.IsAuthenticated]
 
@@ -35,4 +35,3 @@ class FollowViewSet(viewsets.ModelViewSet):
             status = status.HTTP_403_FORBIDDEN)
         self.perform_destroy(instance)
         return Response({"detail":"Unfollowed successfully"}, status=status.HTTP_204_NO_CONTENT)
-        

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class CommentSerializer(serializer.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='user.username', read_only=True)
     model = Comment
     fields = ['id','author','post','content','created_at','updated_at']

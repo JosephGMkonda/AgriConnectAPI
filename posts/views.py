@@ -1,4 +1,4 @@
-from rest_framework from viewsets, status, permissions
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -26,19 +26,19 @@ class PostViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Post.objects.filter(is_draft=False).select_related(
             'auther'
-        ).Prefetch_related(
+        ).prefetch_related(
             Prefetch('tags',queryset=Tag.objects.only('id','name','slug')),
-            Prefetch('comments', queryset=Comment.objects.filter(is_active=True).select_related('auther'[:5]))
+            Prefetch('comments', queryset=Comment.objects.filter(is_active=True).select_related('author'[:5]))
             ).annotate(
-                like_count=Count('likes', distict=True),
-                comment_count=Count('comments', filter=Q(comments__is_active=True), distict=True)
+                like_count=Count('likes', distinct=True),
+                comment_count=Count('comments', filter=Q(comments__is_active=True), distinct=True)
             )
 
 
         post_type = self.request.query_params.get('type')
         if post_type:
             queryset = queryset.filter(post_type=post_type)
-        tag_slug = = self.request.query_params.get('tag')
+        tag_slug =  self.request.query_params.get('tag')
         if tag_slug:
             queryset = queryset.filter(tag_slug=tag_slug)
         author_id = self.request.query_params.get('author')
@@ -57,6 +57,7 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
     @action(detail=True, methods=['post'])
+    
     def like(self, request, pk=None):
         post = self.get_object()
         like, created = Like.objects.get_or_create(

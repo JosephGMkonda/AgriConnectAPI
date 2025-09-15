@@ -1,7 +1,9 @@
 from rest_framework.routers import DefaultRouter
-from comments.views import CommentViewSet
+from .views import CommentViewSet
 
 router = DefaultRouter()
-router.register(r"comments", CommentViewSet, basename="comment")
+router.register(r"Comments", CommentViewSet, basename="Comments")
+
+urlpatterns = router.urls
 
 

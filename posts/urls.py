@@ -4,5 +4,10 @@ from .views import PostViewSet, TagViewSet
 
 router = DefaultRouter()
 
-router.register(r'posts', PostViewSet)
-router.register(r'tags', TagViewSet)
+router.register(r'posts', PostViewSet, basename="posts")
+router.register(r'tags', TagViewSet, basename="tag")
+
+urlpatterns = router.urls
+
+
+ 

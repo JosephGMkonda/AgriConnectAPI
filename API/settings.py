@@ -16,6 +16,10 @@ import dj_database_url
 from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env", override=True) 
+
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 
 # Quick-start development settings - unsuitable for production
@@ -69,8 +73,8 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
+
+
 
 AUTH_USER_MODEL = 'users.CustomUser'
 

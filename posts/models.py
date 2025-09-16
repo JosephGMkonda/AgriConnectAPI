@@ -20,6 +20,31 @@ class Tag(models.Model):
     def __str__(self):
         return self.name
 
+class Media(models.Model):
+    MEDIA_TYPES = [
+        ('image','Image'),
+        ('video','Video')
+    ]
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='media_files')
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
+    file_url = models.URLField(max_length=500)
+    thumbnail_url = models.URLField(max_length=500,blank=True,null=True)
+    alt_text = models.CharField(max_length=200,blank=True)
+    order = models.PositiveIntegerField(default=0)
+    file_size = models.PositiveIntegerField(default=0)
+    duration = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        indexes = [
+            models.Index(fields=['post','order'])
+        ]
+    def __str__(self):
+        return f"{self.media_type} for Post #{self.post_id}"
+        
+
+
 
 class Post(models.Model):
     POST_TYPES = [
@@ -35,8 +60,6 @@ class Post(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     post_type = models.CharField(max_length=20, choices=POST_TYPES, default='article')
-    image_url = models.URLField(max_length=500, blank=True, null=True)
-    video_url = models.URLField(max_length=500, blank=True, null=True)
     tags = models.ManyToManyField(Tag, related_name='posts', blank=True)
     view_count = models.PositiveIntegerField(default=0)
     like_count = models.PositiveIntegerField(default=0)
@@ -65,4 +88,10 @@ class Post(models.Model):
     def update_comment_count(self):
         self.comment_count = self.comments.filter(is_active=True).count()
         self.save(update_fields=['comment_count'])
+    @property
+    def has_media(self):
+        return self.media_files.exists()
+    @property
+    def primary_media(self):
+        return self.media_files.first()
     

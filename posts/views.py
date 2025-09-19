@@ -14,6 +14,7 @@ from .serializers import PostSerializer, TagSerializer
 from .pagenation import OptimizedPagination
 from users.authentication import SupabaseJWTAuthentication
 from .permissions import IsAuthorOrReadOnly
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -21,6 +22,7 @@ class PostViewSet(viewsets.ModelViewSet):
     pagination_class = OptimizedPagination
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     authentication_classes = [SupabaseJWTAuthentication]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         queryset = (
@@ -37,6 +39,11 @@ class PostViewSet(viewsets.ModelViewSet):
                 comment_count_calc=Count("comments", distinct=True),
             )
         )
+        current_user = self.request.user if self.request.user.is_authenticated else None
+        author_id = self.request.query_params.get("author")
+
+        if not author_id and current_user:
+            queryset = queryset.exclude(author=current_user)
 
         post_type = self.request.query_params.get("type")
         if post_type:

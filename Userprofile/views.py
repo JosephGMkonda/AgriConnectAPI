@@ -8,6 +8,9 @@ from django.contrib.auth import get_user_model
 from .models import UserProfile
 from .serializers import UserProfileCreateSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 from users.authentication import SupabaseJWTAuthentication
+from posts.models import Post
+from posts.serializers import PostSerializer
+from django.db.models import Count
 
 
 
@@ -15,20 +18,51 @@ User = get_user_model()
 
 
 @api_view(['GET'])
-@authentication_classes([SupabaseJWTAuthentication])
-@permission_classes([IsAuthenticated])
-def get_user_profile(request, user_id=None):
-
+@permission_classes([AllowAny])
+def get_user_profile(request):
     try:
-        if user_id:
-            user = get_object_or_404(UserProfile, user=user)
+        username = request.GET.get('username')
+        if username:
+            user = get_object_or_404(User, username=username)
         else:
+            user = request.user
+        
+        
+        profile = get_object_or_404(UserProfile, user=user)
+        
+        
+        post_type = request.GET.get('type', '')
+        posts = Post.objects.filter(author=user)
+        
+        if post_type and post_type in dict(Post.POST_TYPES).keys():
+            posts = posts.filter(post_type=post_type)
+        
+        posts = posts.order_by('-created_at')
+        
+        
+        post_counts = Post.objects.filter(author=user).values('post_type').annotate(
+    count=Count('id')
+)
 
-            profile = get_object_or_404(UserProfile, user=request.user)
-        serializer = UserProfileSerializer(profile)
-        return Response(serializer.data)
+        
+        
+        post_type_counts = {item['post_type']: item['count'] for item in post_counts}
+        
+        
+        profile_serializer = UserProfileSerializer(profile)
+        posts_serializer = PostSerializer(posts, many=True, context={'request': request})
+        
+        return Response({
+            'profile': profile_serializer.data,
+            'posts': posts_serializer.data,
+            'post_count': posts.count(),
+            'post_type_counts': post_type_counts,  
+            'follower_count': 0,
+            'following_count': 0,
+        })
+        
     except Exception as e:
-        return Response ({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['PUT', 'PATCH'])

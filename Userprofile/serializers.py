@@ -12,8 +12,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'username', 'email', 'bio', 'avatar_url',
-        'phone_number', 'farmType', 'location', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        'phone_number', 'farmType', 'location', 'profile_completed','created_at', 'updated_at']
+        read_only_fields = ['id','profile_completed', 'created_at', 'updated_at']
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,6 +24,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             if not value.startswith('https://ifqvnzunszqcrcllmejq.supabase.co/storage/'):
                 raise serializers.ValidationError("Avatar URL must be from Supabase storage.")
             return value
+        def update(self, instance, validated_data):
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+                instance.profile_completed = True
+                instance.save()
 
 
 

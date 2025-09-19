@@ -11,6 +11,7 @@ class UserProfile(models.Model):
     farmType = models.CharField(max_length=100, blank=True)
     avatar_url = models.URLField(max_length=500, blank=True)
     location = models.CharField(max_length=100, blank=True)
+    profile_completed = models.BooleanField(default=False) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

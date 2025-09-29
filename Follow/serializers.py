@@ -10,7 +10,7 @@ class followSerializer(serializers.ModelSerializer):
     following_name = serializers.CharField(source="following.username", read_only=True)
 
     class Meta:
-        models = Follow
+        model = Follow
         fields =['id','follower','follower_name','following','following_name','created_at']
         read_only_fields=['follower','created_at']
 

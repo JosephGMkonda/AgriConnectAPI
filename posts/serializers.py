@@ -1,11 +1,18 @@
 from rest_framework import serializers
 from .models import Post, Tag, Media
+from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-from Like.models import Like
 from .services import upload_to_supabase
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, AuthorProfileSerializer 
+from Like.models import Like
+from Like.serializers import LikeSerializer
+
+from Comments.models import Comment 
+from django.db.models import Max  
+
 
 User = get_user_model()
+
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -22,44 +29,37 @@ class MediaSerializer(serializers.ModelSerializer):
             'id', 'media_type', 'file_url', 'thumbnail_url',
             'alt_text', 'order', 'file_size', 'duration', 'created_at'
         ]
-        read_only_fields = ['id', 'file_url', 'thumbnail_url', 'file_size', 'duration', 'created_at']
-
+        read_only_fields = fields
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = UserSerializer(read_only=True)
-    tags = TagSerializer(many=True, read_only=True)
+    author = AuthorProfileSerializer(read_only=True)
     media_files = MediaSerializer(many=True, read_only=True)
-    
+    tags = TagSerializer(many=True, read_only=True)
 
-    media_uploads = serializers.ListField(
-        child=serializers.FileField(max_length=100000, allow_empty_file=False, use_url=False),
+    tags_names = serializers.ListField(
+        child=serializers.CharField(),
         write_only=True,
         required=False
     )
-
-    tags_ids = serializers.ListField(
-        child=serializers.IntegerField(),
+    media_uploads = serializers.ListField(
+        child=serializers.FileField(),
         write_only=True,
-        required=False,
+        required=False
     )
-
+    
     is_liked = serializers.SerializerMethodField()
-    like_count_calc = serializers.IntegerField(read_only=True)
-    comment_count_calc = serializers.IntegerField(read_only=True)
+    comments_count = serializers.SerializerMethodField()  
 
     class Meta:
         model = Post
         fields = [
             'id', 'author', 'title', 'content', 'post_type',
-            'tags', 'tags_ids', 'media_files', 'media_uploads',
-            'view_count', 'like_count_calc', 'comment_count_calc', 'share_count',
-            'created_at', 'updated_at', 'is_liked',
+            'tags', 'tags_names', 'media_files', 'media_uploads',
+            'is_liked', 'comments_count',   
+            'created_at', 'updated_at',
         ]
-        read_only_fields = [
-            'id', 'author', 'view_count', 'like_count',
-            'comment_count', 'share_count', 'created_at', 'updated_at'
-        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
@@ -67,22 +67,23 @@ class PostSerializer(serializers.ModelSerializer):
             return Like.objects.filter(user=request.user, post=obj).exists()
         return False
 
-    def create(self, validated_data):
-        
-        media_files = validated_data.pop('media_uploads', [])
-        tags_ids = validated_data.pop('tags_ids', [])
-        
-        author = validated_data.pop('author', None)
+    def get_comments_count(self, obj):
+        return Comment.objects.filter(post=obj).count()   
 
-        
+    def create(self, validated_data):
+        media_files = validated_data.pop('media_uploads', [])
+        tags_names = validated_data.pop('tags_names', [])
+        author = self.context['request'].user
+
         post = Post.objects.create(author=author, **validated_data)
 
-        
-        if tags_ids:
-            tags = Tag.objects.filter(id__in=tags_ids)
-            post.tags.set(tags)
+        for tag_name in tags_names:
+            tag, created = Tag.objects.get_or_create(
+                name=tag_name,
+                defaults={'slug': slugify(tag_name)}
+            )
+            post.tags.add(tag)
 
-        
         for index, file in enumerate(media_files):
             file_url, file_size, duration, thumbnail_url = upload_to_supabase(file)
             Media.objects.create(
@@ -96,3 +97,58 @@ class PostSerializer(serializers.ModelSerializer):
             )
 
         return post
+
+    def update(self, instance, validated_data):
+        media_files = validated_data.pop('media_uploads', [])
+        tags_names = validated_data.pop('tags_names', [])
+        
+        request = self.context.get('request')
+        media_to_remove = request.data.getlist('media_to_remove', [])
+        existing_media_urls = request.data.getlist('existing_media_urls', [])
+    
+        
+        
+        
+        
+        
+        instance.title = validated_data.get('title', instance.title)
+        instance.content = validated_data.get('content', instance.content)
+        instance.post_type = validated_data.get('post_type', instance.post_type)
+        instance.save()
+        
+        if tags_names is not None:
+            instance.tags.clear()
+            for tag_name in tags_names:
+                tag, created = Tag.objects.get_or_create(
+                name=tag_name,
+                defaults={'slug': slugify(tag_name)}
+            )
+            instance.tags.add(tag)
+        if media_to_remove:
+            Media.objects.filter(id__in=media_to_remove, post=instance).delete()
+            
+        urls_to_remove = set()
+        if existing_media_urls:
+            current_media_urls = set(instance.media_files.values_list('file_url', flat=True))
+            keep_urls = set(existing_media_urls)
+            urls_to_remove = current_media_urls - keep_urls
+        if urls_to_remove:
+            Media.objects.filter(file_url__in=urls_to_remove, post=instance).delete()
+            
+
+        if media_files:
+            current_max_order = Media.objects.filter(post=instance).aggregate(Max('order'))['order__max'] or 0
+        
+            for index, file in enumerate(media_files):
+                file_url, file_size, duration, thumbnail_url = upload_to_supabase(file)
+                Media.objects.create(
+                post=instance,
+                media_type="video" if "video" in file.content_type else "image",
+                file_url=file_url,
+                file_size=file_size,
+                duration=duration,
+                thumbnail_url=thumbnail_url,
+                order=current_max_order + index + 1)
+            
+
+        return instance

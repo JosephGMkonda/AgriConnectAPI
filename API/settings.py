@@ -20,6 +20,7 @@ load_dotenv(BASE_DIR / ".env", override=True)
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
 
 # Quick-start development settings - unsuitable for production
@@ -54,7 +55,8 @@ INSTALLED_APPS = [
     'Like',
     'Share',
     'Saved',
-    'Follow'
+    'Follow',
+    'notifications'
 ]
 
 MIDDLEWARE = [
@@ -82,9 +84,9 @@ ROOT_URLCONF = 'API.urls'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-# Increase file upload size if needed
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  
 
 
 REST_FRAMEWORK = {

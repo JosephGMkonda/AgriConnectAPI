@@ -1,21 +1,15 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.db.models import Count, Prefetch
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_cookie
-from django.shortcuts import get_object_or_404
-
+from rest_framework import viewsets, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Post, Tag
-from Comments.models import Comment
-from Like.models import Like
+from rest_framework.response import Response
 from .serializers import PostSerializer, TagSerializer
 from .pagenation import OptimizedPagination
 from users.authentication import SupabaseJWTAuthentication
-from .permissions import IsAuthorOrReadOnly
-from rest_framework.parsers import MultiPartParser, FormParser
 
+from .permissions import IsAuthorOrReadOnly
+from django.db.models import Count, Prefetch
+from rest_framework.decorators import action
+from Like.models import Like
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
@@ -28,23 +22,14 @@ class PostViewSet(viewsets.ModelViewSet):
         queryset = (
             Post.objects.select_related("author")
             .prefetch_related(
-                Prefetch("tags", queryset=Tag.objects.only("id", "name", "slug")),
-                Prefetch(
-                    "comments",
-                    queryset=Comment.objects.filter(is_active=True).select_related("author"),
-                ),
+                Prefetch("tags", queryset=Tag.objects.only("id", "name", "slug"))
             )
             .annotate(
                 like_count_calc=Count("likes", distinct=True),
                 comment_count_calc=Count("comments", distinct=True),
             )
         )
-        current_user = self.request.user if self.request.user.is_authenticated else None
-        author_id = self.request.query_params.get("author")
-
-        if not author_id and current_user:
-            queryset = queryset.exclude(author=current_user)
-
+    
         post_type = self.request.query_params.get("type")
         if post_type:
             queryset = queryset.filter(post_type=post_type)
@@ -58,52 +43,31 @@ class PostViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(author_id=author_id)
 
         ordering = self.request.query_params.get("ordering", "-created_at")
-        if ordering in [
-            "created_at",
-            "-created_at",
-            "view_count",
-            "-view_count",
-            "like_count",
-            "-like_count",
-        ]:
+        if ordering in ["created_at", "-created_at", "view_count", "-view_count", "like_count", "-like_count"]:
             queryset = queryset.order_by(ordering)
 
         return queryset
 
-    @method_decorator(cache_page(60 * 2))
-    @method_decorator(vary_on_cookie)
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        
+        serializer.save()
 
-    @action(detail=True, methods=["post"])
-    def like(self, request, pk=None):
+
+    @action(detail=True, methods=['post'], url_path='like')
+    def like_post(self, request, pk=None):
         post = self.get_object()
-        like, created = Like.objects.get_or_create(
-            user=request.user,
-            post=post,  
-        )
+        user = request.user
 
+    
+        like, created = Like.objects.get_or_create(user=user, post=post)
         if created:
+            
             post.like_count += 1
-            post.save(update_fields=["like_count"])
-            return Response({"status": "liked"})
+            post.save(update_fields=['like_count'])
+            return Response({'status': 'liked', 'like_count': post.like_count})
         else:
+            
             like.delete()
             post.like_count -= 1
-            post.save(update_fields=["like_count"])
-            return Response({"status": "unliked"})
-
-    @action(detail=True, methods=["post"])
-    def increment_views(self, request, pk=None):
-        post = self.get_object()
-        post.increment_view_count()
-        return Response({"status": "view count incremented"})
-
-
-class TagViewSet(viewsets.ModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+            post.save(update_fields=['like_count'])
+            return Response({'status': 'unliked', 'like_count': post.like_count})

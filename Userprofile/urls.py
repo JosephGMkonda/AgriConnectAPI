@@ -6,4 +6,5 @@ urlpatterns = [
     path('profile/update/', views.update_user_profile, name='update_profile'),
     path('profile/<int:user_id>/', views.get_user_profile, name='get_user_profile'),
     path('profiles/search/', views.search_profile, name='search_profile'),
+    path('recommendations/', views.friend_recommendations, name='friend-recommendations')
 ]

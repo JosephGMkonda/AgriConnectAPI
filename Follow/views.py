@@ -1,7 +1,8 @@
 from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
+from notifications.models import Notification
+from notifications.utils import push_notification
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 
@@ -26,6 +27,13 @@ class FollowViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(follower=self.request.user)
+        notification = Notification.objects.create(
+        recipient=follow.following,
+        sender=self.request.user,
+        notif_type="follow",
+        message=f"{self.request.user.username} started following you!")
+        push_notification(notification)
+
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -43,29 +51,24 @@ class FollowViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="suggested")
     def suggested_users(self, request):
         user = request.user
-
-        
         following_ids = Follow.objects.filter(follower=user).values_list("following_id", flat=True)
-
-    
         queryset = (
-            User.objects.exclude(id=user.id)
-            .exclude(id__in=following_ids)
-            .annotate(follower_count=Count("followers"))
-            .order_by("-follower_count")[:10]  
-        )
-
-    
-        data = [
-            {
-                "id": u.id,
-                "username": u.username,
-                "email": u.email,
-                "avatar_url": getattr(u, "avatar_url", None),
-                "follower_count": u.follower_count,
-            }
-            for u in queryset
-        ]
+        User.objects.exclude(id=user.id)
+        .exclude(id__in=following_ids)
+        .annotate(follower_count=Count("followers"))
+        .order_by("-follower_count")[:10] )
+        
+        data = []
+        for u in queryset:
+            profile = getattr(u, "userprofile", None)  
+            data.append({
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "avatar_url": profile.avatar_url if profile else None,
+            "follower_count": u.follower_count,
+            })
 
         return Response(data, status=status.HTTP_200_OK)
+
 

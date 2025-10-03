@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class followSerializer(serializers.ModelSerializer):
+    
     follower_name = serializers.CharField(source="follower.username", read_only=True)
     following_name = serializers.CharField(source="following.username", read_only=True)
 
